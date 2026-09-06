@@ -2,6 +2,17 @@
 
 本仓库的版本记录从这里开始，持续维护。中文内容以本文件为准，英文镜像见 [CHANGELOG.en.md](CHANGELOG.en.md)。
 
+## [0.2.1] - 2026-09-07
+
+### 修复
+
+- **兼容 dsh 0.1.2-rc.1 的 UI 注入重构**：该版本对 `conversation.input.right` 槽位做了破坏性调整，不再向条目标签注入 owner 的 `input` / `session` 属性，导致麦克风与提示词优化两个按钮渲染失败、从输入框消失。现改用框架标准 `useInput` / `useSession` hook 读取草稿与对话快照，不再依赖被移除的 owner 属性。
+- **修复点击「提示词优化」报 `session.nodes is not iterable`**：dsh 0.1.2 重构图快照结构，顶层 `nodes` 字段运行时已不是数组，有序消息数组迁移到 `chat.legacy.nodes`。上下文提取改为防御式读取：优先取数组，取不到时回退到 `chat.legacy.nodes`，不再对对象做迭代而崩溃。
+
+### 改动
+
+- **依赖与构建修复**：固定 `@deepseek-ai/dsh-attachment` 到兼容轨 `0.1.1-rc.2`（此前自由解析会拉到不兼容的 0.0.x 轨，连带 `dsh-brand` / `dsh-invariants` 版本冲突导致 `npm install` 报 ERESOLVE）；补装 `@deepseek-ai/dsh-client-ui-settings` 与 `@deepseek-ai/dsh-client-store` 两个类型包（提供 `settings.section` 槽位增强与 `SnapshotSelectorHook` 类型），消除构建期类型错误。
+
 ## [0.2.0] - 2026-09-02
 
 ### 新增

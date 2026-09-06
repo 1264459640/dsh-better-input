@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
-import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
+import type { SnapshotSelectorHook, TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
+import type { InputState } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import { effectiveRecognitionLanguage, effectiveRecordingSeconds, type BetterInputSettings, type BetterInputSettingsPatch } from '../config.js'
 import type { BetterInputRemote } from '../remote.js'
 import { WebSpeechSession, isWebSpeechAvailable } from './web-speech.js'
@@ -14,9 +15,7 @@ type Translate = TranslateNS<'better-input'>
  * settings controller face.
  */
 export type InputZoneLikeProps = {
-  readonly input: {
-    readonly draft: string
-  }
+  readonly useInput: SnapshotSelectorHook<InputState>
   readonly inputActions: {
     setDraft(text: string): void
   }
@@ -37,10 +36,13 @@ export type SettingsFace = {
  * polishing is enabled, the committed transcript is polished through the Host
  * LLM route and replaces the draft (unless the user edited it meanwhile).
  */
-export function MicrophoneButton({ input, inputActions, voiceSession, remote, useSettings, t }: InputZoneLikeProps) {
+export function MicrophoneButton({ useInput, inputActions, voiceSession, remote, useSettings, t }: InputZoneLikeProps) {
   const snapshot = useVoiceInputSession(voiceSession)
   const state = snapshot.state
   const setState = (next: typeof state, detail = '') => voiceSession.setState(next, detail)
+  // The current composer draft, read through the framework's standard `useInput`
+  // hook. `InputState` keeps exposing `.draft` in dsh 0.1.2.
+  const input = useInput((state) => state)
 
   const speechRef = useRef<WebSpeechSession | null>(null)
   const baseDraftRef = useRef('')

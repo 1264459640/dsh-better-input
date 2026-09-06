@@ -2,6 +2,17 @@
 
 Versioned release notes for this repository, maintained from here on. This is the English mirror; Chinese is authoritative — see [CHANGELOG.md](CHANGELOG.md).
 
+## [0.2.1] - 2026-09-07
+
+### Fixed
+
+- **Compatibility with the dsh 0.1.2-rc.1 UI injection refactor**: that release made a breaking change to the `conversation.input.right` slot, no longer injecting owner `input` / `session` props into entries, which broke rendering of the microphone and prompt-optimize buttons (they disappeared from the composer). Both now read the draft and the conversation snapshot through the framework's standard `useInput` / `useSession` hooks instead of the removed owner props.
+- **Fix `session.nodes is not iterable` on clicking "prompt optimize"**: dsh 0.1.2 restructured the conversation snapshot — the top-level `nodes` field is no longer an array at runtime, and the ordered message array moved to `chat.legacy.nodes`. Context extraction now reads defensively: it prefers the array when present and falls back to `chat.legacy.nodes`, so it never crashes by iterating a non-iterable object.
+
+### Changed
+
+- **Dependency and build fixes**: pinned `@deepseek-ai/dsh-attachment` to the compatible `0.1.1-rc.2` track (free resolution previously picked the incompatible 0.0.x line, dragging in `dsh-brand` / `dsh-invariants` version conflicts that made `npm install` fail with ERESOLVE); added the `@deepseek-ai/dsh-client-ui-settings` and `@deepseek-ai/dsh-client-store` type packages (providing the `settings.section` slot augmentation and the `SnapshotSelectorHook` type) to clear the build-time type errors.
+
 ## [0.2.0] - 2026-09-02
 
 ### Added

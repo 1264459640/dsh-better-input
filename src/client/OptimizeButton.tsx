@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { createPortal } from 'react-dom'
-import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
-import type { ConversationSnapshot } from '@deepseek-ai/dsh-client-runtime/client'
+import type { SnapshotSelectorHook, TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
+import type { InputState } from '@deepseek-ai/dsh-client-ui-conversation/client'
+import type { ConversationNode, ConversationSnapshot } from '@deepseek-ai/dsh-client-runtime/client'
 import type { BetterInputRemote } from '../remote.js'
 import type { SettingsFace } from './MicrophoneButton.js'
 
@@ -9,19 +10,17 @@ import type { SettingsFace } from './MicrophoneButton.js'
 type Translate = TranslateNS<'better-input'>
 
 /**
- * Props handed to every `conversation.input.dock` entry, plus the injected
- * remote and settings face. The standard session kit provides `inputActions`
- * and `useInput` separately; the owner share gives us `input.draft` and
- * `session` (the conversation snapshot with message history).
+ * Props handed to a `conversation.input.right` entry, plus the injected
+ * remote and settings face. In dsh 0.1.2 the slot no longer passes an owner
+ * `input`/`session`; the framework standard kit supplies `useInput` (draft),
+ * `useSession` (message snapshot) and `inputActions`.
  */
 export type OptimizeButtonProps = {
-  readonly input: {
-    readonly draft: string
-  }
+  readonly useInput: SnapshotSelectorHook<InputState>
+  readonly useSession: SnapshotSelectorHook<ConversationSnapshot>
   readonly inputActions: {
     setDraft(text: string): void
   }
-  readonly session: ConversationSnapshot
   readonly remote: BetterInputRemote
   readonly useSettings: () => SettingsFace
   readonly t: Translate
@@ -40,10 +39,14 @@ type OptimizeState =
  * the original and optimized text. The draft is replaced only when the user
  * clicks "Adopt".
  */
-export function OptimizeButton({ input, inputActions, session, remote, useSettings, t }: OptimizeButtonProps) {
+export function OptimizeButton({ useInput, useSession, inputActions, remote, useSettings, t }: OptimizeButtonProps) {
   const [state, setState] = useState<OptimizeState>({ kind: 'idle' })
   const settingsFace = useSettings()
   const abortRef = useRef<AbortController | null>(null)
+  // Draft and message history come from the framework standard hooks
+  // (`useInput` / `useSession`); dsh 0.1.2 no longer passes an owner `input`/`session`.
+  const input = useInput((state) => state)
+  const session = useSession((area) => area)
 
   // Keep the latest draft in a ref so the click handler can read it without
   // re-subscribing on every keystroke.
@@ -299,9 +302,17 @@ function SparkleIcon() {
  * Returns an empty string when there are no user/assistant nodes.
  */
 function extractConversationContext(session: ConversationSnapshot, maxTurns: number): string {
+  // dsh 0.1.2 restructured the snapshot: the top-level `nodes` is a
+  // `ChatNodeStore` (not an array), and the ordered message array moved to
+  // `chat.legacy.nodes`. Resolve the array defensively so we never iterate an
+  // object and throw "not iterable".
+  const nodes: readonly ConversationNode[] = Array.isArray(session?.nodes)
+    ? session.nodes
+    : (session?.chat?.legacy?.nodes ?? [])
+
   // Collect user and assistant nodes in display order.
   const relevant: Array<{ role: 'user' | 'assistant'; text: string }> = []
-  for (const node of session.nodes) {
+  for (const node of nodes) {
     if (node.kind === 'user') {
       // Extract text from user content blocks.
       const text = (node as unknown as { content: readonly { type: string; text: string }[] }).content
