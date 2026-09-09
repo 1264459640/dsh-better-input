@@ -1,7 +1,6 @@
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import type { Context } from '@deepseek-ai/cordis'
 import { TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
-import { settingsNamespace } from '@deepseek-ai/dsh-settings'
 import type { SettingsScope } from '@deepseek-ai/dsh-settings'
 import type { ImageAttachmentRef } from '@deepseek-ai/dsh-attachment'
 import type { LlmModelInfo, LlmResolvedModelInfo, StreamChunk } from '@deepseek-ai/dsh-llm'
@@ -28,7 +27,7 @@ export class BetterInputPolishService extends TypertRemoteService {
   constructor(ctx: Context) {
     super(ctx, 'BetterInputPolish', { namespace: 'betterInput' })
     ctx.inject(['settings'], (settingsCtx) => {
-      this.settings = settingsCtx.settings.register(settingsNamespace(SETTINGS_NAMESPACE), BetterInputSettingsSchema, {
+      this.settings = settingsCtx.settings.register(SETTINGS_NAMESPACE, BetterInputSettingsSchema, {
         validate: validateSettings
       })
       settingsCtx.effect(() => () => {

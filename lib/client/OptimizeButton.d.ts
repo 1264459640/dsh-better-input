@@ -1,19 +1,20 @@
 import type { SnapshotSelectorHook, TranslateNS } from '@deepseek-ai/dsh-client-ui-slots';
 import type { InputState } from '@deepseek-ai/dsh-client-ui-conversation/client';
-import type { ConversationSnapshot } from '@deepseek-ai/dsh-client-runtime/client';
+import type { ChatSnapshot } from '@deepseek-ai/dsh-client-ui-chat/client';
 import type { BetterInputRemote } from '../remote.js';
 import type { SettingsFace } from './MicrophoneButton.js';
 /** The framework-injected `t` seat for the BetterInput namespace. */
 type Translate = TranslateNS<'better-input'>;
 /**
  * Props handed to a `conversation.input.right` entry, plus the injected
- * remote and settings face. In dsh 0.1.2 the slot no longer passes an owner
- * `input`/`session`; the framework standard kit supplies `useInput` (draft),
- * `useSession` (message snapshot) and `inputActions`.
+ * remote and settings face. In dsh 0.1.2 the slot standard kit supplies
+ * `useChat` (Chat target snapshot, whose `legacy.nodes` carries the message
+ * array) and `useInput` (draft); message history is no longer exposed through
+ * a top-level `session` owner.
  */
 export type OptimizeButtonProps = {
+    readonly useChat: SnapshotSelectorHook<ChatSnapshot>;
     readonly useInput: SnapshotSelectorHook<InputState>;
-    readonly useSession: SnapshotSelectorHook<ConversationSnapshot>;
     readonly inputActions: {
         setDraft(text: string): void;
     };
@@ -28,5 +29,5 @@ export type OptimizeButtonProps = {
  * the original and optimized text. The draft is replaced only when the user
  * clicks "Adopt".
  */
-export declare function OptimizeButton({ useInput, useSession, inputActions, remote, useSettings, t }: OptimizeButtonProps): import("react").JSX.Element;
+export declare function OptimizeButton({ useChat, useInput, inputActions, remote, useSettings, t }: OptimizeButtonProps): import("react").JSX.Element;
 export {};

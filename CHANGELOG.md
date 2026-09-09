@@ -2,6 +2,15 @@
 
 本仓库的版本记录从这里开始，持续维护。中文内容以本文件为准，英文镜像见 [CHANGELOG.en.md](CHANGELOG.en.md)。
 
+## [0.2.2] - 未发布
+
+### 改动
+
+- **彻底跟进 dsh 0.1.2-rc.1，移除已废弃的 `@deepseek-ai/dsh-client-runtime` 依赖**：该聚合包在 0.1.2 已被官方移除，此前的 0.2.1 修复仍停留在旧 runtime 轨。现整体迁移到 0.1.2 轨——`ClientContext` 改用官方统一的 cordis `Context` 别名；服务端相关 5 包（`dsh-api-remotes` / `dsh-llm` / `dsh-settings` / `dsh-typert-protocol` / `dsh-attachment`）升级到 `0.1.2-rc.1` 轨；新增 `@deepseek-ai/dsh-client-ui-chat` 依赖以读取消息历史。
+- **提示词优化取会话上下文改用 `useChat` + `chat.legacy.nodes`**：消息历史数据源统一为 Chat 目标的 `legacy.nodes`。因 0.1.2 拆分后 `ConversationNode` 类型依赖的第三方类型包（`dsh-commands` / `dsh-llm-retry` / `dsh-tool-todo`）不随插件安装、在 `skipLibCheck` 下会整体塌陷成 `any`，现改用本地最小结构类型 `ConversationNodeView` 读消息文本，不依赖相关包的类型解析。
+- **移除已被删除的 `settingsNamespace()` 调用**：0.1.2 中 `SettingsNamespace` 由函数变为 branded 类型，`settings.register` 直接接收 namespace 字面量，`validate` 选项签名保持兼容。
+- **为宿主注入的 `slots` 服务补齐编译期类型**：0.1.2 移除了携带 `ctx.slots` augmentation 的 runtime 包，且该服务类型不再随任何插件依赖包发布。遵循官方生态约定（插件自声明最小 ClientContext，参见 dsh-routing-suite），新增 `slots.d.ts` ambient 声明——`register` 复用 `@deepseek-ai/dsh-client-ui-slots` 的 `SlotCore` 强类型契约，并补宿主独有的 `inject(name, contribute)` 装配面。
+
 ## [0.2.1] - 2026-09-07
 
 ### 修复

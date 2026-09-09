@@ -2,6 +2,15 @@
 
 Versioned release notes for this repository, maintained from here on. This is the English mirror; Chinese is authoritative — see [CHANGELOG.md](CHANGELOG.md).
 
+## [0.2.2] - unreleased
+
+### Changed
+
+- **Fully migrate to dsh 0.1.2-rc.1 and drop the deprecated `@deepseek-ai/dsh-client-runtime` dependency**: that assembly package was removed upstream in 0.1.2; the earlier 0.2.1 fix still sat on the old runtime track. Now migrated wholesale to the 0.1.2 track — `ClientContext` uses the standardized cordis `Context` alias; the five server-side packages (`dsh-api-remotes` / `dsh-llm` / `dsh-settings` / `dsh-typert-protocol` / `dsh-attachment`) were bumped to the `0.1.2-rc.1` track; and `@deepseek-ai/dsh-client-ui-chat` was added to read the message history.
+- **Prompt optimization now reads session context via `useChat` + `chat.legacy.nodes`**: the message-history source is unified on the Chat target's `legacy.nodes`. Because the `ConversationNode` type in 0.1.2 depends on third-party type packages (`dsh-commands` / `dsh-llm-retry` / `dsh-tool-todo`) that are not shipped with this plugin and collapse to `any` under `skipLibCheck`, text extraction now uses a local minimal structural type `ConversationNodeView` and no longer depends on resolving those packages.
+- **Removed the deleted `settingsNamespace()` call**: in 0.1.2 `SettingsNamespace` became a branded type instead of a function; `settings.register` accepts the namespace literal directly, and the `validate` option stays signature-compatible.
+- **Added compile-time types for the host-injected `slots` service**: 0.1.2 removed the runtime package that carried the `ctx.slots` augmentation, and that service's public type no longer ships with any plugin dependency. Following the harness ecosystem convention (plugins declare a minimal ClientContext themselves, see dsh-routing-suite), a new `slots.d.ts` ambient declaration was added — `register` reuses the strongly-typed `SlotCore` contract from `dsh-client-ui-slots`, plus the host's `inject(name, contribute)` wiring face.
+
 ## [0.2.1] - 2026-09-07
 
 ### Fixed

@@ -71,7 +71,8 @@ export function createConversionSource(store: ConversionStore): InputTriggerSour
       clipboardText(ref: string): string {
         return `@${store.get(ref)?.name ?? ref} `
       },
-      async serialize(ref: string): Promise<string> {
+      async serialize(ref: string, signal: AbortSignal): Promise<string> {
+        if (signal.aborted) throw signal.reason ?? new DOMException('Aborted', 'AbortError')
         const item = store.get(ref)
         if (item === undefined) throw new Error(`文件不存在：${ref}`)
         if (!item.sendable) throw new Error(`该文件尚未转换，无法发送：${item.name}`)

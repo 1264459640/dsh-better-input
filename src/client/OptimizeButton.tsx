@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { createPortal } from 'react-dom'
 import type { SnapshotSelectorHook, TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
 import type { InputState } from '@deepseek-ai/dsh-client-ui-conversation/client'
-import type { ConversationNode, ConversationSnapshot } from '@deepseek-ai/dsh-client-runtime/client'
+import type { ChatSnapshot } from '@deepseek-ai/dsh-client-ui-chat/client'
 import type { BetterInputRemote } from '../remote.js'
 import type { SettingsFace } from './MicrophoneButton.js'
 
@@ -11,13 +11,14 @@ type Translate = TranslateNS<'better-input'>
 
 /**
  * Props handed to a `conversation.input.right` entry, plus the injected
- * remote and settings face. In dsh 0.1.2 the slot no longer passes an owner
- * `input`/`session`; the framework standard kit supplies `useInput` (draft),
- * `useSession` (message snapshot) and `inputActions`.
+ * remote and settings face. In dsh 0.1.2 the slot standard kit supplies
+ * `useChat` (Chat target snapshot, whose `legacy.nodes` carries the message
+ * array) and `useInput` (draft); message history is no longer exposed through
+ * a top-level `session` owner.
  */
 export type OptimizeButtonProps = {
+  readonly useChat: SnapshotSelectorHook<ChatSnapshot>
   readonly useInput: SnapshotSelectorHook<InputState>
-  readonly useSession: SnapshotSelectorHook<ConversationSnapshot>
   readonly inputActions: {
     setDraft(text: string): void
   }
@@ -39,14 +40,14 @@ type OptimizeState =
  * the original and optimized text. The draft is replaced only when the user
  * clicks "Adopt".
  */
-export function OptimizeButton({ useInput, useSession, inputActions, remote, useSettings, t }: OptimizeButtonProps) {
+export function OptimizeButton({ useChat, useInput, inputActions, remote, useSettings, t }: OptimizeButtonProps) {
   const [state, setState] = useState<OptimizeState>({ kind: 'idle' })
   const settingsFace = useSettings()
   const abortRef = useRef<AbortController | null>(null)
-  // Draft and message history come from the framework standard hooks
-  // (`useInput` / `useSession`); dsh 0.1.2 no longer passes an owner `input`/`session`.
+  // Draft comes from `useInput`; message history comes from the `useChat`
+  // target snapshot (its `legacy.nodes` carries the ordered message array).
   const input = useInput((state) => state)
-  const session = useSession((area) => area)
+  const chat = useChat((area) => area)
 
   // Keep the latest draft in a ref so the click handler can read it without
   // re-subscribing on every keystroke.
@@ -91,7 +92,7 @@ export function OptimizeButton({ useInput, useSession, inputActions, remote, use
     try {
       // Extract conversation context based on user settings
       const contextTurns = settings?.contextTurns ?? 3
-      const context = contextTurns > 0 ? extractConversationContext(session, contextTurns) : ''
+      const context = contextTurns > 0 ? extractConversationContext(chat.legacy.nodes, contextTurns) : ''
       const result = await remote.optimize(draft, provider, model, context, controller.signal)
       if (controller.signal.aborted) return
       if (!result.ok) {
@@ -293,7 +294,17 @@ function SparkleIcon() {
 }
 
 /**
- * Extract recent conversation context from the session snapshot. Returns a
+ * Minimal structural view of a ConversationNode, read purely for its message
+ * text. Declared locally (rather than importing `ConversationNode`) so the
+ * extractor does not depend on third-party type resolution of the conversation
+ * records package. Matches the fields emitted by `ChatSnapshot.legacy.nodes`.
+ */
+type ConversationNodeView =
+  | { readonly kind: 'user'; readonly content: readonly { readonly type: 'text'; readonly text: string }[] }
+  | { readonly kind: 'assistant'; readonly blocks: readonly { readonly kind: 'text'; readonly text: string }[] }
+
+/**
+ * Extract recent conversation context from the message array. Returns a
  * plain-text summary of the last N user/assistant turns, formatted as:
  *
  *   User: <message text>
@@ -301,28 +312,20 @@ function SparkleIcon() {
  *
  * Returns an empty string when there are no user/assistant nodes.
  */
-function extractConversationContext(session: ConversationSnapshot, maxTurns: number): string {
-  // dsh 0.1.2 restructured the snapshot: the top-level `nodes` is a
-  // `ChatNodeStore` (not an array), and the ordered message array moved to
-  // `chat.legacy.nodes`. Resolve the array defensively so we never iterate an
-  // object and throw "not iterable".
-  const nodes: readonly ConversationNode[] = Array.isArray(session?.nodes)
-    ? session.nodes
-    : (session?.chat?.legacy?.nodes ?? [])
-
-  // Collect user and assistant nodes in display order.
+function extractConversationContext(nodes: readonly ConversationNodeView[], maxTurns: number): string {
+  // chat.legacy.nodes is the ordered message array from the Chat target.
   const relevant: Array<{ role: 'user' | 'assistant'; text: string }> = []
   for (const node of nodes) {
     if (node.kind === 'user') {
       // Extract text from user content blocks.
-      const text = (node as unknown as { content: readonly { type: string; text: string }[] }).content
+      const text = node.content
         .filter((c) => c.type === 'text')
         .map((c) => c.text)
         .join('')
       if (text.trim()) relevant.push({ role: 'user', text: text.trim() })
     } else if (node.kind === 'assistant') {
       // Extract text from assistant blocks.
-      const text = (node as unknown as { blocks: readonly { kind: string; text: string }[] }).blocks
+      const text = node.blocks
         .filter((b) => b.kind === 'text')
         .map((b) => b.text)
         .join('')
