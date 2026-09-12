@@ -2,6 +2,12 @@
 
 本仓库的版本记录从这里开始，持续维护。中文内容以本文件为准，英文镜像见 [CHANGELOG.en.md](CHANGELOG.en.md)。
 
+## [0.2.3] - 未发布
+
+### 改动
+
+- **跟进 dsh 0.1.5-rc.1 并保持向后兼容**：peer 依赖保持 `>= 0.1.2-rc.1 <0.2.0-0`（该范围天然同时覆盖 0.1.2 与 0.1.5 两轨），dev 依赖的类型包（`dsh-client-ui-conversation` / `dsh-client-ui-chat` / `dsh-client-ui-slots` / `dsh-client-ui-input-trigger` / `dsh-client-ui-settings` / `dsh-client-store` / `dsh-client-locale` / `dsh-api-remotes` / `dsh-llm` / `dsh-settings` / `dsh-typert-protocol` / `dsh-attachment`）统一升级到 `0.1.5-rc.1`。已在官方 0.1.5-rc.1 下实测：核心槽位（`conversation.input.dock` / `conversation.input.right` / `settings.section`）契约未变，与旧版无冲突；0.1.5 新增的通用文件上传为 Composer 私有能力、未暴露给插件，故文件转 Markdown / OCR 入口维持现状。
+
 ## [0.2.2] - 未发布
 
 ### 改动

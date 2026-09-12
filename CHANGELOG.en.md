@@ -2,6 +2,12 @@
 
 Versioned release notes for this repository, maintained from here on. This is the English mirror; Chinese is authoritative — see [CHANGELOG.md](CHANGELOG.md).
 
+## [0.2.3] - unreleased
+
+### Changed
+
+- **Track dsh 0.1.5-rc.1 while staying backward-compatible**: the peer ranges stay `>= 0.1.2-rc.1 <0.2.0-0` (this range naturally covers both the 0.1.2 and 0.1.5 tracks), and the dev-dependency type packages (`dsh-client-ui-conversation` / `dsh-client-ui-chat` / `dsh-client-ui-slots` / `dsh-client-ui-input-trigger` / `dsh-client-ui-settings` / `dsh-client-store` / `dsh-client-locale` / `dsh-api-remotes` / `dsh-llm` / `dsh-settings` / `dsh-typert-protocol` / `dsh-attachment`) were all bumped to `0.1.5-rc.1`. Tested against official 0.1.5-rc.1: the core slots (`conversation.input.dock` / `conversation.input.right` / `settings.section`) are unchanged and conflict-free with the older track; 0.1.5's general-purpose file upload is a Composer-internal capability not exposed to plugins, so the file-to-Markdown / OCR entry points remain as-is.
+
 ## [0.2.2] - unreleased
 
 ### Changed

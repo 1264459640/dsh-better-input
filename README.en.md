@@ -274,7 +274,7 @@ For documents **without a text layer** — scanned PDFs, image-only PDFs, or PPT
 
 ## 🧩 Compatibility
 
-- DeepSeek Harness `>= 0.1.2-rc.1`
+- DeepSeek Harness `>= 0.1.2-rc.1` (verified against `0.1.5-rc.1`)
 - Node.js `^22.19.0 || >=24.0.0`
 - Chromium-based browsers (Chrome / Edge)
 

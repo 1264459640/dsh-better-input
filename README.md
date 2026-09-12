@@ -273,7 +273,7 @@ npx -y @deepseek-ai/dsh plugin --profile web add "$PWD"
 
 ## 🧩 兼容性
 
-- DeepSeek Harness `>= 0.1.2-rc.1`
+- DeepSeek Harness `>= 0.1.2-rc.1`（已在 `0.1.5-rc.1` 下实测通过）
 - Node.js `^22.19.0 || >=24.0.0`
 - Chromium 内核浏览器（Chrome / Edge）
 
