@@ -139,26 +139,6 @@ export declare const templateSaveResultSchema: z.ZodObject<{
 export declare const templateRemoveResultSchema: z.ZodObject<{
     removed: z.ZodBoolean;
 }, z.core.$strip>;
-export declare const aboutInfoSchema: z.ZodObject<{
-    repository: z.ZodString;
-    repositorySlug: z.ZodString;
-    version: z.ZodString;
-    license: z.ZodString;
-    updateCommand: z.ZodString;
-    updateCommandNpx: z.ZodString;
-}, z.core.$strip>;
-export declare const updateCheckResultSchema: z.ZodObject<{
-    status: z.ZodEnum<{
-        "up-to-date": "up-to-date";
-        "update-available": "update-available";
-        unpublished: "unpublished";
-        error: "error";
-    }>;
-    installed: z.ZodString;
-    latest: z.ZodNullable<z.ZodString>;
-    updateCommand: z.ZodString;
-    updateCommandNpx: z.ZodString;
-}, z.core.$strip>;
 /** Supported file formats the converter can produce Markdown for. */
 export declare const convertibleFormatSchema: z.ZodEnum<{
     text: "text";
@@ -207,8 +187,6 @@ export declare const convertFileResultSchema: z.ZodObject<{
         fileCount: z.ZodOptional<z.ZodNumber>;
     }, z.core.$strip>>;
 }, z.core.$strip>;
-export type AboutInfoWire = z.infer<typeof aboutInfoSchema>;
-export type UpdateCheckResultWire = z.infer<typeof updateCheckResultSchema>;
 export type ConvertibleFormatWire = z.infer<typeof convertibleFormatSchema>;
 export type ConvertFileResultWire = z.infer<typeof convertFileResultSchema>;
 export type TemplateWire = z.infer<typeof templateSchema>;

@@ -9,3 +9,5 @@ node_modules/
 *.log
 # dev-research clones of other repos; never ship these
 _research/
+# verification scratch (independent audit evidence; not part of the package)
+.verify/

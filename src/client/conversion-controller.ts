@@ -1,34 +1,29 @@
+import type { InputTriggerController, TriggerHit } from '@deepseek-ai/dsh-client-ui-input-trigger/client'
 import type { ConversionItem } from './conversion-types.js'
 import { ConversionStore } from './conversion-store.js'
 import { CONVERSION_SOURCE_NAME } from './conversion-source.js'
 
 /**
- * The shape of an InputTriggerController controller's `toggleSource`, plus the
- * composer shell we read `draftRev` from — both are reachable through the
- * conversation `input` hub at runtime (which the public `IConversation` type
- * declares only narrowly as `SessionInputResolver`).
+ * The composer shell slice this plugin reads. `SessionInputShell` exposes the
+ * live input state through `get snapshot(): InputState`
+ * (`client/input/facade.ts`), whose `draftRev` is the pick-time CAS material a
+ * synthetic trigger hit must carry.
  */
-interface InputTriggerControllerLike {
-  toggleSource(source: string, hit: {
-    trigger: '@'
-    query: string
-    quoted: boolean
-    position: 'inline'
-    span: { start: number; end: number; draftRev: number }
-  }): void
-}
-
 interface InputShellLike {
   readonly snapshot: { readonly draftRev: number }
 }
 
 /**
- * The runtime slice of the conversation input hub we depend on:
- * `inputTriggers(sessionId)` resolves the session's input-trigger controller
- * and `shell(sessionId)` reads its draft revision for the CAS span.
+ * The runtime slice of the conversation input hub we depend on. The public
+ * `IConversation` type declares only `input: SessionInputResolver` (`for()`),
+ * but the concrete hub behind it — `InputHub`, documented as exactly
+ * `ctx.conversation.input` (`client/input/hub.ts`) — also exposes
+ * `inputTriggers(id): InputTriggerController | undefined` and
+ * `shell(id): SessionInputShell`. Both halves are named with their real
+ * declarations so the synthetic hit below stays compiler-checked.
  */
 export interface ConversationInputHubHandle {
-  inputTriggers(sessionId: string): InputTriggerControllerLike | undefined
+  inputTriggers(sessionId: string): InputTriggerController | undefined
   shell(sessionId: string): InputShellLike
 }
 
@@ -59,13 +54,14 @@ export class ConversionController {
     if (controller === undefined) return
     const shell = this.hub.shell(sessionId)
     const draftRev = shell?.snapshot?.draftRev ?? 0
-    controller.toggleSource(CONVERSION_SOURCE_NAME, {
+    const hit: TriggerHit = {
       trigger: '@',
       query: '',
       quoted: false,
       position: 'inline',
       span: { start: 0, end: 0, draftRev },
-    })
+    }
+    controller.toggleSource(CONVERSION_SOURCE_NAME, hit)
   }
 
   /** Remove a conversion by ref (discarded / no longer needed). */

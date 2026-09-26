@@ -1,265 +1,32 @@
-import { aboutInfoSchema, betterInputSettingsPatchSchema, betterInputSettingsViewSchema, booleanSchema, convertFileResultSchema, listRoutesResultSchema, optimizeResultSchema, polishResultSchema, resolveModelEffortsResultSchema, templateInputSchema, templateListResultSchema, templateRemoveResultSchema, templateSaveResultSchema, textSchema, updateCheckResultSchema } from './remote-contract.js'
+import type { InvocationDescriptor } from '@deepseek-ai/dsh-typert-protocol'
+import { TYPERT_REMOTE } from './remote.js'
+
+/**
+ * Host-face invocation definitions.
+ *
+ * This manifest used to restate every codec that `./remote.ts` already
+ * declares, and the two copies drifted: when 0.1.7 replaced the codec's
+ * `schema` field with a `create()` factory the host face kept the stale shape,
+ * and `as const` meant nothing type-checked it. The list below is therefore the
+ * Client contribution's own descriptors — one source of truth, obtained from a
+ * value already typed as `TypertRemoteContribution`, whose `descriptors` are
+ * the protocol's `InvocationDescriptor[]`. Re-declaring codecs here is what
+ * would let this class of drift return, so it does not.
+ *
+ * This is exactly the shape the 0.1.7 Typert loader re-validates at
+ * registration (`validateTypertManifest` in @deepseek-ai/dsh-typert-loader:
+ * every parameter and result must be a strict codec with a `create()` factory).
+ * The annotation is deliberately not `as const`: literal widening is what makes
+ * the compiler check these objects against the protocol instead of trusting
+ * them.
+ */
+const invocations: readonly InvocationDescriptor[] = TYPERT_REMOTE.descriptors
 
 export const TYPERT = {
   package: 'dsh-better-input',
   face: 'host',
   schemas: [],
-  invocations: [
-    {
-      id: 'dsh-better-input#betterInput/getSettings',
-      service: 'BetterInputPolish',
-      namespace: 'betterInput',
-      method: 'getSettings',
-      invocation: { kind: 'direct' },
-      parameters: [],
-      result: {
-        mode: 'strict',
-        typeSymbol: 'dsh-better-input#BetterInputSettingsView',
-        schema: betterInputSettingsViewSchema
-      }
-    },
-    {
-      id: 'dsh-better-input#betterInput/updateSettings',
-      service: 'BetterInputPolish',
-      namespace: 'betterInput',
-      method: 'updateSettings',
-      invocation: { kind: 'direct' },
-      parameters: [{
-        name: 'patch',
-        wire: 'patch',
-        source: 'json',
-        codec: { mode: 'strict', typeSymbol: 'dsh-better-input#BetterInputSettingsPatch', schema: betterInputSettingsPatchSchema }
-      }],
-      cancellation: { parameter: 'signal' },
-      result: {
-        mode: 'strict',
-        typeSymbol: 'dsh-better-input#BetterInputSettingsView',
-        schema: betterInputSettingsViewSchema
-      }
-    },
-    {
-      id: 'dsh-better-input#betterInput/listRoutes',
-      service: 'BetterInputPolish',
-      namespace: 'betterInput',
-      method: 'listRoutes',
-      invocation: { kind: 'direct' },
-      parameters: [],
-      result: {
-        mode: 'strict',
-        typeSymbol: 'dsh-better-input#PolishRoute[]',
-        schema: listRoutesResultSchema
-      }
-    },
-    {
-      id: 'dsh-better-input#betterInput/resolveModelEfforts',
-      service: 'BetterInputPolish',
-      namespace: 'betterInput',
-      method: 'resolveModelEfforts',
-      invocation: { kind: 'direct' },
-      parameters: [
-        {
-          name: 'provider',
-          wire: 'provider',
-          source: 'json',
-          codec: { mode: 'strict', typeSymbol: 'string', schema: textSchema }
-        },
-        {
-          name: 'model',
-          wire: 'model',
-          source: 'json',
-          codec: { mode: 'strict', typeSymbol: 'string', schema: textSchema }
-        }
-      ],
-      result: {
-        mode: 'strict',
-        typeSymbol: 'dsh-better-input#ResolveModelEffortsResult',
-        schema: resolveModelEffortsResultSchema
-      }
-    },
-    {
-      id: 'dsh-better-input#betterInput/getAbout',
-      service: 'BetterInputPolish',
-      namespace: 'betterInput',
-      method: 'getAbout',
-      invocation: { kind: 'direct' },
-      parameters: [],
-      result: {
-        mode: 'strict',
-        typeSymbol: 'dsh-better-input#AboutInfo',
-        schema: aboutInfoSchema
-      }
-    },
-    {
-      id: 'dsh-better-input#betterInput/checkForUpdate',
-      service: 'BetterInputPolish',
-      namespace: 'betterInput',
-      method: 'checkForUpdate',
-      invocation: { kind: 'direct' },
-      parameters: [],
-      cancellation: { parameter: 'signal' },
-      result: {
-        mode: 'strict',
-        typeSymbol: 'dsh-better-input#UpdateCheckResult',
-        schema: updateCheckResultSchema
-      }
-    },
-    {
-      id: 'dsh-better-input#betterInput/polish',
-      service: 'BetterInputPolish',
-      namespace: 'betterInput',
-      method: 'polish',
-      invocation: { kind: 'direct' },
-      parameters: [
-        {
-          name: 'transcript',
-          wire: 'transcript',
-          source: 'json',
-          codec: { mode: 'strict', typeSymbol: 'string', schema: textSchema }
-        },
-        {
-          name: 'provider',
-          wire: 'provider',
-          source: 'json',
-          codec: { mode: 'strict', typeSymbol: 'string', schema: textSchema }
-        },
-        {
-          name: 'model',
-          wire: 'model',
-          source: 'json',
-          codec: { mode: 'strict', typeSymbol: 'string', schema: textSchema }
-        }
-      ],
-      cancellation: { parameter: 'signal' },
-      result: {
-        mode: 'strict',
-        typeSymbol: 'string',
-        schema: polishResultSchema
-      }
-    },
-    {
-      id: 'dsh-better-input#betterInput/optimize',
-      service: 'BetterInputPolish',
-      namespace: 'betterInput',
-      method: 'optimize',
-      invocation: { kind: 'direct' },
-      parameters: [
-        {
-          name: 'text',
-          wire: 'text',
-          source: 'json',
-          codec: { mode: 'strict', typeSymbol: 'string', schema: textSchema }
-        },
-        {
-          name: 'provider',
-          wire: 'provider',
-          source: 'json',
-          codec: { mode: 'strict', typeSymbol: 'string', schema: textSchema }
-        },
-        {
-          name: 'model',
-          wire: 'model',
-          source: 'json',
-          codec: { mode: 'strict', typeSymbol: 'string', schema: textSchema }
-        },
-        {
-          name: 'context',
-          wire: 'context',
-          source: 'json',
-          codec: { mode: 'strict', typeSymbol: 'string', schema: textSchema }
-        }
-      ],
-      cancellation: { parameter: 'signal' },
-      result: {
-        mode: 'strict',
-        typeSymbol: 'string',
-        schema: optimizeResultSchema
-      }
-    },
-    {
-      id: 'dsh-better-input#betterInput/convertFile',
-      service: 'BetterInputPolish',
-      namespace: 'betterInput',
-      method: 'convertFile',
-      invocation: { kind: 'direct' },
-      parameters: [
-        {
-          name: 'fileName',
-          wire: 'fileName',
-          source: 'json',
-          codec: { mode: 'strict', typeSymbol: 'string', schema: textSchema }
-        },
-        {
-          name: 'fileData',
-          wire: 'fileData',
-          source: 'json',
-          codec: { mode: 'strict', typeSymbol: 'string', schema: textSchema }
-        },
-        {
-          name: 'ocr',
-          wire: 'ocr',
-          source: 'json',
-          codec: { mode: 'strict', typeSymbol: 'boolean', schema: booleanSchema }
-        }
-      ],
-      cancellation: { parameter: 'signal' },
-      result: {
-        mode: 'strict',
-        typeSymbol: 'dsh-better-input#ConvertFileResult',
-        schema: convertFileResultSchema
-      }
-    },
-    {
-      id: 'dsh-better-input#betterInput/templatesList',
-      service: 'BetterInputPolish',
-      namespace: 'betterInput',
-      method: 'templatesList',
-      invocation: { kind: 'direct' },
-      parameters: [],
-      result: {
-        mode: 'strict',
-        typeSymbol: 'dsh-better-input#TemplateListResult',
-        schema: templateListResultSchema
-      }
-    },
-    {
-      id: 'dsh-better-input#betterInput/templatesSave',
-      service: 'BetterInputPolish',
-      namespace: 'betterInput',
-      method: 'templatesSave',
-      invocation: { kind: 'direct' },
-      parameters: [{
-        name: 'template',
-        wire: 'template',
-        source: 'json',
-        codec: { mode: 'strict', typeSymbol: 'dsh-better-input#TemplateInput', schema: templateInputSchema }
-      }],
-      cancellation: { parameter: 'signal' },
-      result: {
-        mode: 'strict',
-        typeSymbol: 'dsh-better-input#TemplateSaveResult',
-        schema: templateSaveResultSchema
-      }
-    },
-    {
-      id: 'dsh-better-input#betterInput/templatesRemove',
-      service: 'BetterInputPolish',
-      namespace: 'betterInput',
-      method: 'templatesRemove',
-      invocation: { kind: 'direct' },
-      parameters: [{
-        name: 'id',
-        wire: 'id',
-        source: 'json',
-        codec: { mode: 'strict', typeSymbol: 'string', schema: textSchema }
-      }],
-      cancellation: { parameter: 'signal' },
-      result: {
-        mode: 'strict',
-        typeSymbol: 'dsh-better-input#TemplateRemoveResult',
-        schema: templateRemoveResultSchema
-      }
-    }
-  ],
+  invocations,
   model: {
     services: [
       {
@@ -273,7 +40,7 @@ export const TYPERT = {
           {
             kind: 'method',
             name: 'getSettings',
-            signature: 'getSettings(): BetterInputSettingsView',
+            signature: 'getSettings(): Promise<BetterInputSettingsView>',
             summary: 'Read the current plugin settings.',
             jsDoc: '/** Read the current plugin settings. */'
           },
@@ -297,20 +64,6 @@ export const TYPERT = {
             signature: 'resolveModelEfforts(provider: string, model: string): Promise<{ efforts: readonly ReasoningEffortInfo[]; defaultEffort?: string }>',
             summary: 'Resolve reasoning-effort tiers for one route (lazy).',
             jsDoc: '/** Resolve reasoning-effort tiers for one route (lazy). */'
-          },
-          {
-            kind: 'method',
-            name: 'getAbout',
-            signature: 'getAbout(): AboutInfo',
-            summary: 'Read the installed plugin identity and repository info.',
-            jsDoc: '/** Read the installed plugin identity and repository info. */'
-          },
-          {
-            kind: 'method',
-            name: 'checkForUpdate',
-            signature: 'checkForUpdate(signal: AbortSignal): Promise<UpdateCheckResult>',
-            summary: 'Check the npm registry for the latest published version.',
-            jsDoc: '/** Check the npm registry for the latest published version. */'
           },
           {
             kind: 'method',
@@ -369,14 +122,6 @@ export const TYPERT = {
             declaration: 'export interface ReasoningEffortInfo { id: string; name: string; description?: string } export interface PolishRoute { provider: string; providerName: string; model: string; modelName: string; reasoningEfforts: readonly ReasoningEffortInfo[]; defaultReasoningEffort?: string }'
           },
           {
-            name: 'AboutInfo',
-            declaration: 'export interface AboutInfo { repository: string; repositorySlug: string; version: string; license: string; updateCommand: string; updateCommandNpx: string }'
-          },
-          {
-            name: 'UpdateCheckResult',
-            declaration: "export type UpdateCheckResult = { status: 'up-to-date' | 'update-available' | 'unpublished' | 'error'; installed: string; latest: string | null; updateCommand: string; updateCommandNpx: string }"
-          },
-          {
             name: 'ConvertFileResult',
             declaration: "export type ConvertFileResult = { success: boolean; format: 'text' | 'pdf' | 'docx' | 'xlsx' | 'xls' | 'pptx' | 'html' | 'epub' | 'csv' | 'json' | 'xml' | 'zip'; markdown: string; warnings: readonly string[]; metadata?: { pageCount?: number; slideCount?: number; sheetCount?: number; wordCount?: number; fileCount?: number } }"
           },
@@ -406,6 +151,6 @@ export const TYPERT = {
     events: [],
     objects: []
   }
-} as const
+}
 
 export default TYPERT

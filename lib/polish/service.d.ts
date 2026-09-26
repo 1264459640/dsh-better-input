@@ -1,16 +1,24 @@
 import type { Context } from '@deepseek-ai/cordis';
 import { TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol';
 import { type BetterInputSettingsPatch, type BetterInputSettingsView, type PolishRoute, type ReasoningEffortInfo } from '../config.js';
-import { type AboutInfo, type UpdateCheckResult } from '../about.js';
 import type { ConvertibleFormat } from '../converter/types.js';
 import type { TemplateInputWire, TemplateWire } from '../remote-contract.js';
 export declare class BetterInputPolishService extends TypertRemoteService {
     static inject: string[];
-    private settings;
+    private readonly settingsStore;
     private readonly templateStore;
     constructor(ctx: Context);
-    getSettings(): BetterInputSettingsView;
+    /**
+     * Read the current plugin settings from the plugin-owned document at
+     * `~/.dsh/better-input/settings.json`. A genuinely unreadable document
+     * degrades to `available: false` instead of failing the remote call.
+     */
+    getSettings(): Promise<BetterInputSettingsView>;
     updateSettings(patch: BetterInputSettingsPatch, signal: AbortSignal): Promise<BetterInputSettingsView>;
+    /** Defaults-only view used when the settings document cannot be read. */
+    private unavailableView;
+    /** Flattened settings for one Host operation; defaults when the store is unreadable. */
+    private currentSettings;
     listRoutes(): Promise<PolishRoute[]>;
     /**
      * Lazily resolve reasoning efforts for a single route. Only called once the
@@ -23,8 +31,6 @@ export declare class BetterInputPolishService extends TypertRemoteService {
         efforts: readonly ReasoningEffortInfo[];
         defaultEffort?: string;
     }>;
-    getAbout(): AboutInfo;
-    checkForUpdate(signal: AbortSignal): Promise<UpdateCheckResult>;
     polish(transcript: string, provider: string, model: string, signal: AbortSignal): Promise<string>;
     optimize(text: string, provider: string, model: string, context: string, signal: AbortSignal): Promise<string>;
     private completePolish;

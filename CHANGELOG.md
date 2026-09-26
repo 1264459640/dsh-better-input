@@ -2,6 +2,30 @@
 
 本仓库的版本记录从这里开始，持续维护。中文内容以本文件为准，英文镜像见 [CHANGELOG.en.md](CHANGELOG.en.md)。
 
+## [0.2.4] - 未发布
+
+### 改动
+
+- **跟进 dsh 0.1.7-rc.2**：dev 依赖的类型包（`dsh-client-ui-conversation` / `dsh-client-ui-chat` / `dsh-client-ui-slots` / `dsh-client-ui-input-trigger` / `dsh-client-ui-settings` / `dsh-client-ui-plugin-manager` / `dsh-client-store` / `dsh-client-locale` / `dsh-api-remotes` / `dsh-llm` / `dsh-typert-protocol` / `dsh-attachment`）统一升级到 `0.1.7-rc.2`，并新增 `@deepseek-ai/dsh-api-gateway`（补齐远程调用的类型解析，见「修复」）；`@deepseek-ai/cordis` 升到 `4.0.4`（`@deepseek-ai/schemastery` 与 `@deepseek-ai/dsh-settings` 已随设置 schema 一并移除，见下）。
+- **peer 依赖范围收紧到 `>=0.1.7-rc.2 <0.2.0-0`**：0.1.7 移除了本项目原本使用的设置注册 API，Typert codec 的字段形状也发生了变化（见下），旧轨（0.1.2 / 0.1.5）已无法运行本版本，因此不再声明兼容。此前 `>=0.1.2-rc.1 <0.2.0-0` 的宽范围在这一版是虚假承诺。
+- **适配 Typert 远程协议 codec 的形状变更**：0.1.7 起 codec 不再接受 `schema`，改为惰性构造的 `create: () => schema`。`src/remote.ts` 的 27 处已全部迁移；`src/typert.ts` 里重复的 27 处则直接删除、改为引用同一份定义（见「修复」）。浏览器端 RPC 契约（方法名、参数、返回结构、`AbortSignal` 取消）经逐项比对完全不变。
+- **设置存储改为插件自持（`~/.dsh/better-input/settings.json`）**：0.1.7 移除了 `settings.register(namespace, schema, { validate })`，`SettingsScope` 也不再导出，原本的设置注册方式已无对应 API。官方的替代路径要求插件导出 cordis `Config`、把每个字段都标记为 `.volatile()` 才会出现在 `settings.describe()` 里，还要经由 `ctx.fiber.entry` / `ctx.root.loader.locate` 这类内部结构反查自己的 loader entry id，并且写入的是插件的加载期配置（可能触发 fiber 重启）；任何一处漂移都会静默退化成「设置不可用」，用户只会看到设置存不下来。因此改用与本仓库模板库（`src/templates/store.ts`）一致的持久化方式：写入走「临时文件 + 原子重命名」，文件意外损坏时自动隔离为 `*.corrupt-<时间戳>` 并重建，写入失败会以 reject 的形式上报而不是假装保存成功。设置页 UI 与远程接口未改动。
+- **清理随本次迁移失效的依赖与死代码**：`@deepseek-ai/schemastery` 与 `@deepseek-ai/dsh-settings` 从 peer/dev 依赖中移除（前者只服务于已删除的设置 schema；后者提供的 `SettingsScope` 与设置注册 API 在 0.1.7 已不存在），并删除仅用于旧设置注册的 `src/config-schema.ts` 及随之失效的 `SETTINGS_NAMESPACE` 常量。`@deepseek-ai/dsh-client-store` 予以保留：它仍是 `SnapshotSelectorHook` 的定义来源，只是经 `dsh-client-ui-slots` 间接引用，删掉会让该类型静默塌成 `any`。
+- **修正客户端接入清单（`dsh.client.inject`）**：原列表把 `@deepseek-ai/dsh-client-ui-slots` 当作注入项（该包在 0.1.7-rc.2 没有 `dsh.client` 行，是一条空边），却漏掉了 `ctx.slots` 的真正提供方 `@deepseek-ai/dsh-client-ui-renderer`，以及 `inputTriggers` / `locale` / `remote` / `settings.section` 各自的服务提供包。现按浏览器端实际使用的服务补齐为 8 项：设置页迁入插件页时追加了 `@deepseek-ai/dsh-client-ui-plugin-manager`（见下）。
+- **只保留「提示词优化」，解绑其余功能**：客户端注册面不再贡献语音输入、AI 润色、本地文件转 Markdown（含 OCR）与提示词模板四类入口，`src/client/index.ts` 只保留提示词优化按钮（`conversation.input.right`）。相关源文件与依赖按既定范围保留、仅解绑，不再进入产物。同时移除设置页里的「关于与更新」区块及其宿主面：`getAbout` / `checkForUpdate` 两个 RPC（`src/remote.ts`、`src/remote-contract.ts`、`src/polish/service.ts`、`src/typert.ts` 中的对应项）与 `src/about.ts` 一并删除。
+- **设置页迁移到「插件页」**：原先以 `settings.section` 注册的独立设置页，改为注册插件页（plugin-manager）声明的 `plugins.bundle.config` 键槽，`key` 取该 bundle 的包名 `dsh-better-input`；设置内容就地渲染在该插件自己的详情页上（描述与「包含的组件」之间），侧边栏不再有独立的 BetterInput 设置入口，组件相应改名 `BetterInputPluginConfig`。该槽是 **keyed** 槽，注册必须用 `key`（用 `id` 会被静默忽略：运行时按 `options.key` 分发）。为此新增 `@deepseek-ai/dsh-client-ui-plugin-manager`（仅 `import type` 合契约、客户端接入清单一行的运行时排序、peer 范围与 dev 精确版本），并补进 `tsdown.client.ts` 的 `CLIENT_EXTERNALS`，以免将来改为值导入时被内联出第二份副本。
+
+### 修复
+
+- **`src/typert.ts` 的宿主清单此前完全没有被类型检查，且在 0.1.7 下会直接导致插件注册失败**：DSH 的 typert loader 会加载本包的 `./typert` 导出并调用 `validateTypertManifest` 做校验，其中 `requireStrictCodec` 在 codec 缺少 `create()` 时会抛 `"has no create() factory"` —— 也就是说只升级依赖的话，插件会在 typert 注册阶段就加载失败。而该文件用 `as const` 导出、从未与协议类型对撞，`tsc` 不会给出任何提示，这正是本次 codec 变更被掩盖的原因。现已把 `invocations` 直接取自已带协议类型的 `TYPERT_REMOTE.descriptors`，宿主面与客户端面共用同一份定义：漂移不只是「能被发现」，而是已经不可能发生。
+- **远程调用此前根本没有被类型检查**：`@deepseek-ai/dsh-api-remotes/client` 的类型引用了 `@deepseek-ai/dsh-api-gateway/client`，而该包不在本项目依赖中，`skipLibCheck` 又把找不到模块的错误一并吞掉，于是 `ClientRemote` 静默塌成 `any` —— 12 个远程方法的名字、参数个数与返回值全部不受检查（而本次迁移改的恰恰就是这套协议）。现把 `@deepseek-ai/dsh-api-gateway` 补进 peer/dev 依赖，并用 `IsAny<>` 探针确认 `ClientRemote` 已恢复为真实类型，12 个调用点全部通过类型检查。
+- **`src/client/slots.d.ts` 对 `ctx.slots` 的本地声明比真实服务更宽**：`inject(name: string, contribute: () => unknown): unknown` 让任何字符串都能当槽位名编译通过。现按 `@deepseek-ai/dsh-client-ui-renderer` 中真实的 `SlotRegistry.inject(key: keyof SlotMap & string, cb)` 收紧；错拼的槽位名和错误的 disposer 返回值现在都会报错（已用负向用例验证）。顺带把 `src/client/conversion-controller.ts` 里手写的鸭子类型 `InputTriggerControllerLike` 换成真实的 `InputTriggerController` / `TriggerHit`，合成触发命中（`toggleSource`）现在同样受编译检查。
+- **移除指向已删除包的构建外部项**：`tsdown.client.ts` 的 `CLIENT_EXTERNALS` 里仍列着 0.1.2 就已被官方删除的 `@deepseek-ai/dsh-client-runtime/client`，现已移除，并补上客户端实际 import 的其他 DSH 包，以免将来某个值导入把共享插件内联出第二份副本、破坏服务单例。
+
+### 注意
+
+- **旧版本已保存的设置不会自动迁移**：0.2.3 及更早版本把设置注册为 DSH 的设置命名空间，值存在 DSH 自己的配置文件里；0.1.7 移除了该注册 API，本版本改为插件自持 `~/.dsh/better-input/settings.json`。因此升级后设置会从默认值开始，需要重新在设置页选择润色 / 优化 / OCR 模型并重填自定义提示词（提示词模板库 `templates.json` 不受影响，仍在原处）。该文件与既有模板库一样写在 `~/.dsh/` 下，不读取 `$DSH_HOME`。
+
 ## [0.2.3] - 未发布
 
 ### 改动

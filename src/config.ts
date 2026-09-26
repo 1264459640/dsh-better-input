@@ -4,8 +4,6 @@
  * AI polishing of transcripts.
  */
 
-export const SETTINGS_NAMESPACE = 'dsh-better-input'
-
 /** Recording is capped to avoid an abandoned session holding the mic forever. */
 export const DEFAULT_MAX_RECORDING_SECONDS = 120
 

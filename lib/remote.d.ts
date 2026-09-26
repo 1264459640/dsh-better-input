@@ -1,6 +1,6 @@
 import type { RemoteResult, TypertRemoteContribution } from '@deepseek-ai/dsh-typert-protocol';
 import type { ClientRemote } from '@deepseek-ai/dsh-api-remotes/client';
-import type { AboutInfoWire, BetterInputSettingsPatch, BetterInputSettingsView, ConvertFileResultWire, PolishRoute, ReasoningEffortInfo, TemplateInputWire, TemplateWire, UpdateCheckResultWire } from './remote-contract.js';
+import type { BetterInputSettingsPatch, BetterInputSettingsView, ConvertFileResultWire, PolishRoute, ReasoningEffortInfo, TemplateInputWire, TemplateWire } from './remote-contract.js';
 export type BetterInputRemote = ClientRemote['betterInput'];
 declare module '@deepseek-ai/dsh-typert-protocol' {
     interface TypertRemoteNamespace$betterInput {
@@ -11,8 +11,6 @@ declare module '@deepseek-ai/dsh-typert-protocol' {
             efforts: readonly ReasoningEffortInfo[];
             defaultEffort?: string;
         }>>;
-        getAbout: () => Promise<RemoteResult<AboutInfoWire>>;
-        checkForUpdate: (signal?: AbortSignal) => Promise<RemoteResult<UpdateCheckResultWire>>;
         polish: (transcript: string, provider: string, model: string, signal?: AbortSignal) => Promise<RemoteResult<string>>;
         optimize: (text: string, provider: string, model: string, context: string, signal?: AbortSignal) => Promise<RemoteResult<string>>;
         convertFile: (fileName: string, fileData: string, ocr?: boolean, signal?: AbortSignal) => Promise<RemoteResult<ConvertFileResultWire>>;
@@ -34,8 +32,6 @@ declare module '@deepseek-ai/dsh-typert-protocol' {
             efforts: readonly ReasoningEffortInfo[];
             defaultEffort?: string;
         }>>;
-        'betterInput/getAbout': () => Promise<RemoteResult<AboutInfoWire>>;
-        'betterInput/checkForUpdate': (signal?: AbortSignal) => Promise<RemoteResult<UpdateCheckResultWire>>;
         'betterInput/polish': (transcript: string, provider: string, model: string, signal?: AbortSignal) => Promise<RemoteResult<string>>;
         'betterInput/optimize': (text: string, provider: string, model: string, context: string, signal?: AbortSignal) => Promise<RemoteResult<string>>;
         'betterInput/convertFile': (fileName: string, fileData: string, ocr?: boolean, signal?: AbortSignal) => Promise<RemoteResult<ConvertFileResultWire>>;
@@ -53,5 +49,11 @@ declare module '@deepseek-ai/dsh-typert-protocol' {
         betterInput: TypertRemoteNamespace$betterInput;
     }
 }
+/**
+ * Client-side Remote contribution for this package. Every codec is a strict
+ * codec whose schema is materialized by `create()`, which is the shape the
+ * Typert Gateway and the Typert loader require in 0.1.7
+ * (`TypertCodec` in @deepseek-ai/dsh-typert-protocol).
+ */
 export declare const TYPERT_REMOTE: TypertRemoteContribution;
 export default TYPERT_REMOTE;

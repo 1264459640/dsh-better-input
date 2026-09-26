@@ -4,9 +4,8 @@ import type { Context as ClientContext } from '@deepseek-ai/cordis';
  * own apply() via `ctx.remote.$mount`, so it MUST NOT appear here — the
  * outer inject gates plugin activation and would deadlock waiting for
  * itself. It is declared only on the inner ctx.inject() below, which runs
- * after the mount. Settings reach the browser through `SettingsScopeBinder`
- * (provided by `@deepseek-ai/dsh-client-ui-settings`) and are read inside
- * the settings section slot itself, not via a top-level `settings` service
- * here. */
+ * after the mount. Settings never come from a top-level `settings` service:
+ * the plugin owns its settings document on the Host, so the Plugins page
+ * reads them through this plugin's own `remote.betterInput` RPC. */
 export declare const inject: string[];
 export declare function apply(ctx: ClientContext): Promise<() => Promise<void>>;

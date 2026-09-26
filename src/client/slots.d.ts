@@ -1,22 +1,39 @@
 /**
  * Host-provided `slots` service type.
  *
- * dsh 0.1.2 removed the client runtime assembly package (`dsh-client-runtime`)
- * whose cordis `Context` augmentation previously exposed `ctx.slots` to plugin
- * code. The slot-registry service is still injected by the host at runtime, but
- * its public type no longer ships in any package a plugin depends on — the
- * `SlotsService` export moved out of `@deepseek-ai/dsh-client-ui-slots`.
+ * At runtime `ctx.slots` is `SlotRegistry`, provided by
+ * `@deepseek-ai/dsh-client-ui-renderer` (`lib/types/client/registry.d.ts`:
+ * `class SlotRegistry extends Service`, and its `client/index.d.ts` merges
+ * `Context.slots: SlotRegistry`). A plugin that does not depend on the
+ * renderer package cannot name that type, so this file re-declares the two
+ * members this plugin uses and mirrors their real signatures exactly:
  *
- * The harness ecosystem convention (e.g. dsh-routing-suite) is that a plugin
- * declares its own minimal ClientContext. We mirror that here: reuse the pure
- * slot registry's strongly-typed `register` contract (`SlotCore`) and add the
- * host's nested `inject(name, contribute)` wiring face used by this plugin's
- * `apply`.
+ * - `register` — the core `SlotCore['register']` typed face, reused verbatim
+ *   (never re-typed), which is what keeps every `register()` call checked
+ *   against the declaration-merged SlotMap;
+ * - `inject` — one synchronous effect per declaration lifetime of a slot key,
+ *   returning the callback's product; the signature below is the renderer's
+ *   `inject(key, callback)` narrowed to the same shape.
+ *
+ * Keep both in step with the renderer's registry.d.ts: a widened copy here
+ * (e.g. `inject(name: string, contribute: () => unknown)`) silently un-checks
+ * every slot key and every returned disposer in this plugin.
  */
-import type { SlotCore } from '@deepseek-ai/dsh-client-ui-slots'
+import type { SlotCore, SlotMap } from '@deepseek-ai/dsh-client-ui-slots'
+
+/** One synchronous effect installed while an injected slot declaration is live. */
+type SlotInjectionEffect = (() => void) | Iterable<() => void>
 
 interface BetterInputSlotsService extends SlotCore {
-  inject(name: string, contribute: () => unknown): unknown
+  /**
+   * Install an effect for each declaration lifetime of a slot. The callback
+   * runs synchronously when the declaration already exists; otherwise it runs
+   * inside the declaring `register()` call after the declaration is committed.
+   * @param key - declared SlotMap key to depend on.
+   * @param callback - creates one disposer, or an iterable of disposers.
+   * @returns idempotent disposer for the wait and any active effect.
+   */
+  inject(key: keyof SlotMap & string, callback: () => SlotInjectionEffect): () => void
 }
 
 declare module '@deepseek-ai/cordis' {

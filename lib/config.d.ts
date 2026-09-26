@@ -3,7 +3,6 @@
  * Voice input through the browser Web Speech API, plus Host-side
  * AI polishing of transcripts.
  */
-export declare const SETTINGS_NAMESPACE = "dsh-better-input";
 /** Recording is capped to avoid an abandoned session holding the mic forever. */
 export declare const DEFAULT_MAX_RECORDING_SECONDS = 120;
 export declare const MAX_POLISH_PROMPT_LENGTH = 4000;

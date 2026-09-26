@@ -1,12 +1,10 @@
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import type { Context } from '@deepseek-ai/cordis'
 import { TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
-import type { SettingsScope } from '@deepseek-ai/dsh-settings'
 import type { ImageAttachmentRef } from '@deepseek-ai/dsh-attachment'
 import type { LlmModelInfo, LlmResolvedModelInfo, StreamChunk } from '@deepseek-ai/dsh-llm'
-import { DEFAULT_SETTINGS, MAX_OCR_CHARACTERS, MAX_OPTIMIZED_CHARACTERS, MAX_OPTIMIZE_CHARACTERS, MAX_POLISHED_CHARACTERS, MAX_TRANSCRIPT_CHARACTERS, OPTIMIZE_TIMEOUT_MS, POLISH_TIMEOUT_MS, SETTINGS_NAMESPACE, validateSettings, type BetterInputSettings, type BetterInputSettingsPatch, type BetterInputSettingsView, type PolishRoute, type ReasoningEffortInfo } from '../config.js'
-import { BetterInputSettingsSchema } from '../config-schema.js'
-import { checkForPluginUpdate, readInstalledAboutInfo, type AboutInfo, type UpdateCheckResult } from '../about.js'
+import { DEFAULT_SETTINGS, MAX_OCR_CHARACTERS, MAX_OPTIMIZED_CHARACTERS, MAX_OPTIMIZE_CHARACTERS, MAX_POLISHED_CHARACTERS, MAX_TRANSCRIPT_CHARACTERS, OPTIMIZE_TIMEOUT_MS, POLISH_TIMEOUT_MS, validateSettings, type BetterInputSettings, type BetterInputSettingsPatch, type BetterInputSettingsView, type PolishRoute, type ReasoningEffortInfo } from '../config.js'
+import { SettingsStore, type SettingsSnapshot } from '../settings-store.js'
 import { optimizeUserText, polishUserText, resolveOptimizeSystemPrompt, resolvePolishSystemPrompt, OCR_SYSTEM_PROMPT, ocrUserText, OPTIMIZE_SYSTEM_PROMPT, POLISH_SYSTEM_PROMPT } from './prompts.js'
 import { convertFile } from '../converter/to-markdown.js'
 import { detectFormat } from '../converter/detect.js'
@@ -21,57 +19,82 @@ type StoredSettings = BetterInputSettings
 
 export class BetterInputPolishService extends TypertRemoteService {
   static inject = ['llm', 'attachments']
-  private settings: SettingsScope<Record<string, unknown>> | undefined
+  private readonly settingsStore = new SettingsStore()
   private readonly templateStore = new TemplateStore()
 
   constructor(ctx: Context) {
     super(ctx, 'BetterInputPolish', { namespace: 'betterInput' })
-    ctx.inject(['settings'], (settingsCtx) => {
-      this.settings = settingsCtx.settings.register(SETTINGS_NAMESPACE, BetterInputSettingsSchema, {
-        validate: validateSettings
-      })
-      settingsCtx.effect(() => () => {
-        this.settings = undefined
-      }, 'dsh-better-input settings lifecycle')
-    })
   }
 
-  getSettings(): BetterInputSettingsView {
-    if (this.settings === undefined) {
-      return {
-        available: false,
-        writable: false,
-        settings: { ...DEFAULT_SETTINGS },
-        overridden: [],
-        defaultPolishPrompt: POLISH_SYSTEM_PROMPT,
-        defaultOptimizePrompt: OPTIMIZE_SYSTEM_PROMPT
-      }
+  /**
+   * Read the current plugin settings from the plugin-owned document at
+   * `~/.dsh/better-input/settings.json`. A genuinely unreadable document
+   * degrades to `available: false` instead of failing the remote call.
+   */
+  async getSettings(): Promise<BetterInputSettingsView> {
+    let snapshot: SettingsSnapshot
+    try {
+      snapshot = await this.settingsStore.read()
+    } catch (error) {
+      console.warn('[dsh-better-input] settings could not be read; reporting them as unavailable', error)
+      return this.unavailableView()
     }
-    const settings = flattenStoredSettings(this.settings.get())
-    const provider = this.ctx.get('settings') as { describe?: (options: { redactSecrets: boolean }) => Array<{ ns: unknown; user?: unknown }>; writable?: boolean } | undefined
-    const descriptor = provider?.describe?.({ redactSecrets: true })?.find((item) => String(item.ns) === SETTINGS_NAMESPACE)
-    const user = descriptor?.user
     return {
       available: true,
-      writable: provider?.writable ?? false,
-      settings,
-      overridden: isRecord(user) ? Object.keys(user) : [],
+      writable: await this.settingsStore.isWritable(),
+      settings: snapshot.settings,
+      overridden: [...snapshot.overridden],
       defaultPolishPrompt: POLISH_SYSTEM_PROMPT,
       defaultOptimizePrompt: OPTIMIZE_SYSTEM_PROMPT
     }
   }
 
   async updateSettings(patch: BetterInputSettingsPatch, signal: AbortSignal): Promise<BetterInputSettingsView> {
-    if (this.settings === undefined) return this.getSettings()
     signal.throwIfAborted()
-    const current = flattenStoredSettings(this.settings.get())
-    const next: BetterInputSettings = { ...current }
-    for (const [key, value] of Object.entries(patch)) {
-      if (value !== undefined) (next as unknown as Record<string, unknown>)[key] = value
+    let snapshot: SettingsSnapshot
+    try {
+      snapshot = await this.settingsStore.read()
+    } catch (error) {
+      // Nothing can be merged onto an unreadable document, and pretending the
+      // write landed would be worse than reporting the store as unavailable.
+      console.warn('[dsh-better-input] settings could not be read; refusing the write', error)
+      return this.unavailableView()
+    }
+    const next: BetterInputSettings = { ...snapshot.settings }
+    // Only the patch's own fields are persisted, so `overridden` keeps naming
+    // exactly the keys the user set rather than every key in the document.
+    const stored: Record<string, unknown> = {}
+    for (const key of Object.keys(patch) as (keyof BetterInputSettings)[]) {
+      const value = patch[key]
+      if (value === undefined) continue
+      Object.assign(next, { [key]: value })
+      stored[key] = value
     }
     validateSettings(next)
-    await this.settings.update(next as unknown as Record<string, unknown>)
+    signal.throwIfAborted()
+    await this.settingsStore.merge(stored)
     return this.getSettings()
+  }
+
+  /** Defaults-only view used when the settings document cannot be read. */
+  private unavailableView(): BetterInputSettingsView {
+    return {
+      available: false,
+      writable: false,
+      settings: { ...DEFAULT_SETTINGS },
+      overridden: [],
+      defaultPolishPrompt: POLISH_SYSTEM_PROMPT,
+      defaultOptimizePrompt: OPTIMIZE_SYSTEM_PROMPT
+    }
+  }
+
+  /** Flattened settings for one Host operation; defaults when the store is unreadable. */
+  private async currentSettings(): Promise<BetterInputSettings> {
+    try {
+      return (await this.settingsStore.read()).settings
+    } catch {
+      return { ...DEFAULT_SETTINGS }
+    }
   }
 
   async listRoutes(): Promise<PolishRoute[]> {
@@ -138,19 +161,10 @@ export class BetterInputPolishService extends TypertRemoteService {
     }
   }
 
-  getAbout(): AboutInfo {
-    return readInstalledAboutInfo()
-  }
-
-  async checkForUpdate(signal: AbortSignal): Promise<UpdateCheckResult> {
-    signal.throwIfAborted()
-    return checkForPluginUpdate({ installed: readInstalledAboutInfo().version, signal })
-  }
-
   async polish(transcript: string, provider: string, model: string, signal: AbortSignal): Promise<string> {
     const raw = transcript.trim()
     if (raw === '' || raw.length > MAX_TRANSCRIPT_CHARACTERS || signal.aborted) return raw
-    const settings = this.settings === undefined ? DEFAULT_SETTINGS : flattenStoredSettings(this.settings.get())
+    const settings = await this.currentSettings()
     const storedPrompt = settings.polishPrompt
     const effort = settings.polishReasoningEffort
 
@@ -183,7 +197,7 @@ export class BetterInputPolishService extends TypertRemoteService {
   async optimize(text: string, provider: string, model: string, context: string, signal: AbortSignal): Promise<string> {
     const raw = text.trim()
     if (raw === '' || raw.length > MAX_OPTIMIZE_CHARACTERS || signal.aborted) return raw
-    const settings = this.settings === undefined ? DEFAULT_SETTINGS : flattenStoredSettings(this.settings.get())
+    const settings = await this.currentSettings()
     const storedPrompt = settings.optimizePrompt
     const effort = settings.optimizeReasoningEffort
 
@@ -320,7 +334,7 @@ export class BetterInputPolishService extends TypertRemoteService {
     data: Uint8Array,
     signal: AbortSignal
   ): Promise<{ success: boolean; format: ConvertibleFormat; markdown: string; warnings: readonly string[]; metadata?: { pageCount?: number; slideCount?: number; sheetCount?: number; wordCount?: number; fileCount?: number } }> {
-    const settings = this.settings === undefined ? DEFAULT_SETTINGS : flattenStoredSettings(this.settings.get())
+    const settings = await this.currentSettings()
     // OCR uses its own dedicated vision route — it deliberately does NOT fall
     // back to the polish model, so a scanned file can only be OCR-ready once
     // the user explicitly picked a vision model in Settings.
@@ -422,37 +436,6 @@ export class BetterInputPolishService extends TypertRemoteService {
       return { provider, model }
     }
   }
-}
-
-function flattenStoredSettings(raw: unknown): BetterInputSettings {
-  const record = isRecord(raw) ? raw : {}
-  return {
-    language: text(record.language),
-    maxRecordingSeconds: typeof record.maxRecordingSeconds === 'number'
-      ? record.maxRecordingSeconds
-      : DEFAULT_SETTINGS.maxRecordingSeconds,
-    polishingEnabled: record.polishingEnabled !== false,
-    polishProvider: text(record.polishProvider),
-    polishModel: text(record.polishModel),
-    polishReasoningEffort: text(record.polishReasoningEffort),
-    polishPrompt: typeof record.polishPrompt === 'string' ? record.polishPrompt : '',
-    optimizeEnabled: record.optimizeEnabled !== false,
-    optimizeProvider: text(record.optimizeProvider),
-    optimizeModel: text(record.optimizeModel),
-    optimizeReasoningEffort: text(record.optimizeReasoningEffort),
-    optimizePrompt: typeof record.optimizePrompt === 'string' ? record.optimizePrompt : '',
-    contextTurns: typeof record.contextTurns === 'number' ? record.contextTurns : DEFAULT_SETTINGS.contextTurns,
-    ocrProvider: text(record.ocrProvider),
-    ocrModel: text(record.ocrModel),
-  }
-}
-
-function text(value: unknown): string {
-  return typeof value === 'string' ? value : ''
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
 /** Decode a base64 string into bytes, tolerating a missing padding. */

@@ -1,7 +1,7 @@
 import type { RemoteResult, TypertRemoteContribution } from '@deepseek-ai/dsh-typert-protocol'
 import type { ClientRemote } from '@deepseek-ai/dsh-api-remotes/client'
-import { aboutInfoSchema, betterInputSettingsPatchSchema, betterInputSettingsViewSchema, booleanSchema, convertFileResultSchema, listRoutesResultSchema, optimizeResultSchema, polishResultSchema, resolveModelEffortsResultSchema, templateInputSchema, templateListResultSchema, templateRemoveResultSchema, templateSaveResultSchema, textSchema, updateCheckResultSchema } from './remote-contract.js'
-import type { AboutInfoWire, BetterInputSettingsPatch, BetterInputSettingsView, ConvertFileResultWire, PolishRoute, ReasoningEffortInfo, TemplateInputWire, TemplateWire, UpdateCheckResultWire } from './remote-contract.js'
+import { betterInputSettingsPatchSchema, betterInputSettingsViewSchema, booleanSchema, convertFileResultSchema, listRoutesResultSchema, optimizeResultSchema, polishResultSchema, resolveModelEffortsResultSchema, templateInputSchema, templateListResultSchema, templateRemoveResultSchema, templateSaveResultSchema, textSchema } from './remote-contract.js'
+import type { BetterInputSettingsPatch, BetterInputSettingsView, ConvertFileResultWire, PolishRoute, ReasoningEffortInfo, TemplateInputWire, TemplateWire } from './remote-contract.js'
 
 export type BetterInputRemote = ClientRemote['betterInput']
 
@@ -11,8 +11,6 @@ declare module '@deepseek-ai/dsh-typert-protocol' {
     updateSettings: (patch: BetterInputSettingsPatch, signal?: AbortSignal) => Promise<RemoteResult<BetterInputSettingsView>>
     listRoutes: () => Promise<RemoteResult<PolishRoute[]>>
     resolveModelEfforts: (provider: string, model: string) => Promise<RemoteResult<{ efforts: readonly ReasoningEffortInfo[]; defaultEffort?: string }>>
-    getAbout: () => Promise<RemoteResult<AboutInfoWire>>
-    checkForUpdate: (signal?: AbortSignal) => Promise<RemoteResult<UpdateCheckResultWire>>
     polish: (transcript: string, provider: string, model: string, signal?: AbortSignal) => Promise<RemoteResult<string>>
     optimize: (text: string, provider: string, model: string, context: string, signal?: AbortSignal) => Promise<RemoteResult<string>>
     convertFile: (fileName: string, fileData: string, ocr?: boolean, signal?: AbortSignal) => Promise<RemoteResult<ConvertFileResultWire>>
@@ -26,8 +24,6 @@ declare module '@deepseek-ai/dsh-typert-protocol' {
     'betterInput/updateSettings': (patch: BetterInputSettingsPatch, signal?: AbortSignal) => Promise<RemoteResult<BetterInputSettingsView>>
     'betterInput/listRoutes': () => Promise<RemoteResult<PolishRoute[]>>
     'betterInput/resolveModelEfforts': (provider: string, model: string) => Promise<RemoteResult<{ efforts: readonly ReasoningEffortInfo[]; defaultEffort?: string }>>
-    'betterInput/getAbout': () => Promise<RemoteResult<AboutInfoWire>>
-    'betterInput/checkForUpdate': (signal?: AbortSignal) => Promise<RemoteResult<UpdateCheckResultWire>>
     'betterInput/polish': (transcript: string, provider: string, model: string, signal?: AbortSignal) => Promise<RemoteResult<string>>
     'betterInput/optimize': (text: string, provider: string, model: string, context: string, signal?: AbortSignal) => Promise<RemoteResult<string>>
     'betterInput/convertFile': (fileName: string, fileData: string, ocr?: boolean, signal?: AbortSignal) => Promise<RemoteResult<ConvertFileResultWire>>
@@ -41,6 +37,12 @@ declare module '@deepseek-ai/dsh-typert-protocol' {
   }
 }
 
+/**
+ * Client-side Remote contribution for this package. Every codec is a strict
+ * codec whose schema is materialized by `create()`, which is the shape the
+ * Typert Gateway and the Typert loader require in 0.1.7
+ * (`TypertCodec` in @deepseek-ai/dsh-typert-protocol).
+ */
 export const TYPERT_REMOTE: TypertRemoteContribution = {
   package: 'dsh-better-input',
   descriptors: [
@@ -54,7 +56,7 @@ export const TYPERT_REMOTE: TypertRemoteContribution = {
       result: {
         mode: 'strict',
         typeSymbol: 'dsh-better-input#BetterInputSettingsView',
-        schema: betterInputSettingsViewSchema
+        create: () => betterInputSettingsViewSchema
       }
     },
     {
@@ -67,13 +69,13 @@ export const TYPERT_REMOTE: TypertRemoteContribution = {
         name: 'patch',
         wire: 'patch',
         source: 'json',
-        codec: { mode: 'strict', typeSymbol: 'dsh-better-input#BetterInputSettingsPatch', schema: betterInputSettingsPatchSchema }
+        codec: { mode: 'strict', typeSymbol: 'dsh-better-input#BetterInputSettingsPatch', create: () => betterInputSettingsPatchSchema }
       }],
       cancellation: { parameter: 'signal' },
       result: {
         mode: 'strict',
         typeSymbol: 'dsh-better-input#BetterInputSettingsView',
-        schema: betterInputSettingsViewSchema
+        create: () => betterInputSettingsViewSchema
       }
     },
     {
@@ -86,7 +88,7 @@ export const TYPERT_REMOTE: TypertRemoteContribution = {
       result: {
         mode: 'strict',
         typeSymbol: 'dsh-better-input#PolishRoute[]',
-        schema: listRoutesResultSchema
+        create: () => listRoutesResultSchema
       }
     },
     {
@@ -100,46 +102,19 @@ export const TYPERT_REMOTE: TypertRemoteContribution = {
           name: 'provider',
           wire: 'provider',
           source: 'json',
-          codec: { mode: 'strict', typeSymbol: 'string', schema: textSchema }
+          codec: { mode: 'strict', typeSymbol: 'string', create: () => textSchema }
         },
         {
           name: 'model',
           wire: 'model',
           source: 'json',
-          codec: { mode: 'strict', typeSymbol: 'string', schema: textSchema }
+          codec: { mode: 'strict', typeSymbol: 'string', create: () => textSchema }
         }
       ],
       result: {
         mode: 'strict',
         typeSymbol: 'dsh-better-input#ResolveModelEffortsResult',
-        schema: resolveModelEffortsResultSchema
-      }
-    },
-    {
-      id: 'dsh-better-input#betterInput/getAbout',
-      service: 'BetterInputPolish',
-      namespace: 'betterInput',
-      method: 'getAbout',
-      invocation: { kind: 'direct' },
-      parameters: [],
-      result: {
-        mode: 'strict',
-        typeSymbol: 'dsh-better-input#AboutInfo',
-        schema: aboutInfoSchema
-      }
-    },
-    {
-      id: 'dsh-better-input#betterInput/checkForUpdate',
-      service: 'BetterInputPolish',
-      namespace: 'betterInput',
-      method: 'checkForUpdate',
-      invocation: { kind: 'direct' },
-      parameters: [],
-      cancellation: { parameter: 'signal' },
-      result: {
-        mode: 'strict',
-        typeSymbol: 'dsh-better-input#UpdateCheckResult',
-        schema: updateCheckResultSchema
+        create: () => resolveModelEffortsResultSchema
       }
     },
     {
@@ -153,26 +128,26 @@ export const TYPERT_REMOTE: TypertRemoteContribution = {
           name: 'transcript',
           wire: 'transcript',
           source: 'json',
-          codec: { mode: 'strict', typeSymbol: 'string', schema: textSchema }
+          codec: { mode: 'strict', typeSymbol: 'string', create: () => textSchema }
         },
         {
           name: 'provider',
           wire: 'provider',
           source: 'json',
-          codec: { mode: 'strict', typeSymbol: 'string', schema: textSchema }
+          codec: { mode: 'strict', typeSymbol: 'string', create: () => textSchema }
         },
         {
           name: 'model',
           wire: 'model',
           source: 'json',
-          codec: { mode: 'strict', typeSymbol: 'string', schema: textSchema }
+          codec: { mode: 'strict', typeSymbol: 'string', create: () => textSchema }
         }
       ],
       cancellation: { parameter: 'signal' },
       result: {
         mode: 'strict',
         typeSymbol: 'string',
-        schema: polishResultSchema
+        create: () => polishResultSchema
       }
     },
     {
@@ -186,32 +161,32 @@ export const TYPERT_REMOTE: TypertRemoteContribution = {
           name: 'text',
           wire: 'text',
           source: 'json',
-          codec: { mode: 'strict', typeSymbol: 'string', schema: textSchema }
+          codec: { mode: 'strict', typeSymbol: 'string', create: () => textSchema }
         },
         {
           name: 'provider',
           wire: 'provider',
           source: 'json',
-          codec: { mode: 'strict', typeSymbol: 'string', schema: textSchema }
+          codec: { mode: 'strict', typeSymbol: 'string', create: () => textSchema }
         },
         {
           name: 'model',
           wire: 'model',
           source: 'json',
-          codec: { mode: 'strict', typeSymbol: 'string', schema: textSchema }
+          codec: { mode: 'strict', typeSymbol: 'string', create: () => textSchema }
         },
         {
           name: 'context',
           wire: 'context',
           source: 'json',
-          codec: { mode: 'strict', typeSymbol: 'string', schema: textSchema }
+          codec: { mode: 'strict', typeSymbol: 'string', create: () => textSchema }
         }
       ],
       cancellation: { parameter: 'signal' },
       result: {
         mode: 'strict',
         typeSymbol: 'string',
-        schema: optimizeResultSchema
+        create: () => optimizeResultSchema
       }
     },
     {
@@ -225,26 +200,26 @@ export const TYPERT_REMOTE: TypertRemoteContribution = {
           name: 'fileName',
           wire: 'fileName',
           source: 'json',
-          codec: { mode: 'strict', typeSymbol: 'string', schema: textSchema }
+          codec: { mode: 'strict', typeSymbol: 'string', create: () => textSchema }
         },
         {
           name: 'fileData',
           wire: 'fileData',
           source: 'json',
-          codec: { mode: 'strict', typeSymbol: 'string', schema: textSchema }
+          codec: { mode: 'strict', typeSymbol: 'string', create: () => textSchema }
         },
         {
           name: 'ocr',
           wire: 'ocr',
           source: 'json',
-          codec: { mode: 'strict', typeSymbol: 'boolean', schema: booleanSchema }
+          codec: { mode: 'strict', typeSymbol: 'boolean', create: () => booleanSchema }
         }
       ],
       cancellation: { parameter: 'signal' },
       result: {
         mode: 'strict',
         typeSymbol: 'dsh-better-input#ConvertFileResult',
-        schema: convertFileResultSchema
+        create: () => convertFileResultSchema
       }
     },
     {
@@ -257,7 +232,7 @@ export const TYPERT_REMOTE: TypertRemoteContribution = {
       result: {
         mode: 'strict',
         typeSymbol: 'dsh-better-input#TemplateListResult',
-        schema: templateListResultSchema
+        create: () => templateListResultSchema
       }
     },
     {
@@ -270,13 +245,13 @@ export const TYPERT_REMOTE: TypertRemoteContribution = {
         name: 'template',
         wire: 'template',
         source: 'json',
-        codec: { mode: 'strict', typeSymbol: 'dsh-better-input#TemplateInput', schema: templateInputSchema }
+        codec: { mode: 'strict', typeSymbol: 'dsh-better-input#TemplateInput', create: () => templateInputSchema }
       }],
       cancellation: { parameter: 'signal' },
       result: {
         mode: 'strict',
         typeSymbol: 'dsh-better-input#TemplateSaveResult',
-        schema: templateSaveResultSchema
+        create: () => templateSaveResultSchema
       }
     },
     {
@@ -289,13 +264,13 @@ export const TYPERT_REMOTE: TypertRemoteContribution = {
         name: 'id',
         wire: 'id',
         source: 'json',
-        codec: { mode: 'strict', typeSymbol: 'string', schema: textSchema }
+        codec: { mode: 'strict', typeSymbol: 'string', create: () => textSchema }
       }],
       cancellation: { parameter: 'signal' },
       result: {
         mode: 'strict',
         typeSymbol: 'dsh-better-input#TemplateRemoveResult',
-        schema: templateRemoveResultSchema
+        create: () => templateRemoveResultSchema
       }
     }
   ]

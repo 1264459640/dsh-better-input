@@ -106,23 +106,6 @@ export const templateRemoveResultSchema = z.object({
   removed: z.boolean()
 })
 
-export const aboutInfoSchema = z.object({
-  repository: z.string(),
-  repositorySlug: z.string(),
-  version: z.string(),
-  license: z.string(),
-  updateCommand: z.string(),
-  updateCommandNpx: z.string()
-})
-
-export const updateCheckResultSchema = z.object({
-  status: z.enum(['up-to-date', 'update-available', 'unpublished', 'error']),
-  installed: z.string(),
-  latest: z.string().nullable(),
-  updateCommand: z.string(),
-  updateCommandNpx: z.string()
-})
-
 /** Supported file formats the converter can produce Markdown for. */
 export const convertibleFormatSchema = z.enum([
   'text',
@@ -155,8 +138,6 @@ export const convertFileResultSchema = z.object({
   metadata: convertMetadataSchema.optional()
 })
 
-export type AboutInfoWire = z.infer<typeof aboutInfoSchema>
-export type UpdateCheckResultWire = z.infer<typeof updateCheckResultSchema>
 export type ConvertibleFormatWire = z.infer<typeof convertibleFormatSchema>
 export type ConvertFileResultWire = z.infer<typeof convertFileResultSchema>
 export type TemplateWire = z.infer<typeof templateSchema>

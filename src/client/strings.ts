@@ -63,20 +63,6 @@ export type BetterInputStrings = {
   optimizePromptPlaceholder: string
   contextTurnsLabel: string
   contextTurnsHint: string
-  aboutTitle: string
-  aboutVersionLabel: string
-  aboutRepositoryLabel: string
-  aboutChangelogLabel: string
-  aboutLicenseLabel: string
-  checkUpdateButton: string
-  checkingUpdate: string
-  updateUpToDate: string
-  updateAvailable: string
-  updateUnpublished: string
-  updateCheckFailed: string
-  updateCommandLabel: string
-  updateCommandNpxLabel: string
-  updateCommandPick: string
   convertAttach: string
   convertAddFile: string
   convertToggle: string
@@ -141,8 +127,8 @@ export const zh: BetterInputStrings = {
   voiceFailed: '语音输入失败',
   polishNotConfigured: '未配置润色模型，请在设置页选择',
   polishFailedKeepOriginal: '润色失败，已保留原文',
-  settingsTitle: 'BetterInput 设置',
-  settingsDescription: '配置语音识别与 AI 润色。润色复用你在 dsh 设置里已配置的模型，无需额外 API key。',
+  settingsTitle: '提示词优化',
+  settingsDescription: '配置提示词优化：选择模型、思考强度与自定义优化提示词。优化复用你在 dsh 设置里已配置的模型，无需额外 API key。',
   loading: '加载中…',
   saveFailed: '保存失败，请重试',
   languageLabel: '识别语言',
@@ -189,20 +175,6 @@ export const zh: BetterInputStrings = {
   optimizePromptPlaceholder: '可选：粘贴自定义提示词…',
   contextTurnsLabel: '上下文引用轮数',
   contextTurnsHint: '优化时引用最近 N 轮对话作为上下文，0 为禁用。默认 3 轮。',
-  aboutTitle: '关于与更新',
-  aboutVersionLabel: '当前版本',
-  aboutRepositoryLabel: '项目地址',
-  aboutChangelogLabel: '更新日志',
-  aboutLicenseLabel: '许可证',
-  checkUpdateButton: '检查更新',
-  checkingUpdate: '检查中…',
-  updateUpToDate: '当前已是最新版本。',
-  updateAvailable: '发现新版本',
-  updateUnpublished: '该版本未在 npm 上公开发布。',
-  updateCheckFailed: '检查更新失败',
-  updateCommandLabel: '已全局安装 dsh CLI，执行',
-  updateCommandNpxLabel: '未全局安装，改用 npx 执行',
-  updateCommandPick: '按你的安装方式二选一即可',
   convertAttach: '添加文件',
   convertAddFile: '添加文件',
   convertToggle: '添加文件',
@@ -267,8 +239,8 @@ export const en: BetterInputStrings = {
   voiceFailed: 'Voice input failed',
   polishNotConfigured: 'No polish model configured, please choose one in Settings',
   polishFailedKeepOriginal: 'Polishing failed, original kept',
-  settingsTitle: 'BetterInput Settings',
-  settingsDescription: 'Configure voice recognition and AI polishing. Polishing reuses the models already configured in dsh — no extra API key needed.',
+  settingsTitle: 'Prompt optimization',
+  settingsDescription: 'Configure prompt optimization: pick the model and thinking effort, and write a custom optimization prompt. Optimization reuses the models already configured in dsh — no extra API key needed.',
   loading: 'Loading…',
   saveFailed: 'Failed to save, please retry',
   languageLabel: 'Recognition language',
@@ -315,20 +287,6 @@ export const en: BetterInputStrings = {
   optimizePromptPlaceholder: 'Optional: paste a custom prompt…',
   contextTurnsLabel: 'Context turns',
   contextTurnsHint: 'Include recent N turns as context for optimization. 0 = disabled. Default 3.',
-  aboutTitle: 'About & Updates',
-  aboutVersionLabel: 'Installed version',
-  aboutRepositoryLabel: 'Repository',
-  aboutChangelogLabel: 'Changelog',
-  aboutLicenseLabel: 'License',
-  checkUpdateButton: 'Check for updates',
-  checkingUpdate: 'Checking…',
-  updateUpToDate: 'You are up to date.',
-  updateAvailable: 'A new version is available',
-  updateUnpublished: 'This version is not published on npm.',
-  updateCheckFailed: 'Update check failed',
-  updateCommandLabel: 'With a global dsh CLI, run',
-  updateCommandNpxLabel: 'Without a global dsh CLI, run via npx',
-  updateCommandPick: 'Use either one depending on how you installed DSH',
   convertAttach: 'Add file',
   convertAddFile: 'Add file',
   convertToggle: 'Add file',
