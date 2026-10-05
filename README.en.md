@@ -113,7 +113,7 @@ Input isn't just about features — it's also how comfortable and polished it fe
 
 ## 🚀 Install
 
-Prereqs: [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (`>= 0.1.7-rc.2`) + Node.js `^22.19.0 || >=24.0.0` + Chrome/Edge.
+Prereqs: [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (`>= 0.1.7-rc.2`, verified against `0.2.0-rc.2` / `0.2.0-rc.1`) + Node.js `^22.19.0 || >=24.0.0` + Chrome/Edge.
 
 > 💡 **Pick either way.** If you have the `dsh` CLI installed, use the short commands below. If not — or you don't want to install anything globally — use the **npx full form**: no global configuration needed at all. Published on [npm](https://www.npmjs.com/package/dsh-better-input).
 
@@ -274,7 +274,7 @@ For documents **without a text layer** — scanned PDFs, image-only PDFs, or PPT
 
 ## 🧩 Compatibility
 
-- DeepSeek Harness `>= 0.1.7-rc.2` (verified against `0.1.7-rc.2`)
+- DeepSeek Harness `>= 0.1.7-rc.2` (verified against `0.2.0-rc.2` / `0.2.0-rc.1` and `0.1.7-rc.2`)
 - Node.js `^22.19.0 || >=24.0.0`
 - Chromium-based browsers (Chrome / Edge)
 

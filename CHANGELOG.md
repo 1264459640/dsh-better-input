@@ -2,6 +2,19 @@
 
 本仓库的版本记录从这里开始，持续维护。中文内容以本文件为准，英文镜像见 [CHANGELOG.en.md](CHANGELOG.en.md)。
 
+## [0.2.5] - 未发布
+
+### 改动
+
+- **跟进 dsh 0.2.0-rc.2**：dev 依赖的 13 个类型包（`dsh-api-gateway` / `dsh-api-remotes` / `dsh-attachment` / `dsh-client-locale` / `dsh-client-store` / `dsh-client-ui-chat` / `dsh-client-ui-conversation` / `dsh-client-ui-input-trigger` / `dsh-client-ui-plugin-manager` / `dsh-client-ui-settings` / `dsh-client-ui-slots` / `dsh-llm` / `dsh-typert-protocol`）统一升级到 `0.2.0-rc.2`；`@deepseek-ai/cordis` 的 peer 收紧为 `~4.0.4`（0.2.0 轨的官方包普遍声明 `cordis ~4.0.4`）。另新增 `@deepseek-ai/dsh-brand` / `@deepseek-ai/dsh-client-connection` / `@deepseek-ai/dsh-scope` 三个 dev 依赖：它们是 0.2.0 轨新引入的传递 peer（`dsh-attachment` → `dsh-brand`、`dsh-api-gateway` → `dsh-client-connection`、`dsh-api-remotes` → `dsh-scope`），不显式声明会让 `npm install` 直接 ERESOLVE 而装不上。
+- **peer 范围放宽为 `>=0.1.7-rc.2 <0.3.0-0`（本版本的根因修复）**：0.2.0 轨的启动器在加载每个 bundle 之前会调用 `@deepseek-ai/dsh-app-boot` 的 `evaluatePluginCompatibility`，对每个以 `@deepseek-ai/dsh` / `@deepseek-ai/dsh-` 开头的 peer 逐项做 `semver.satisfies(runtime, range, { includePrerelease: true })`，任何一项不满足就**整包跳过**。0.2.4 声明的 `>=0.1.7-rc.2 <0.2.0-0` 在 0.2.0 轨下判定为不兼容，宿主日志出现 `skipping profile bundle "dsh-better-input": Error: Plugin dsh-better-input@0.2.4 is incompatible with dsh 0.2.0-rc.1`，插件在界面里彻底消失——`conversation.input.right` 槽位本身仍在（`available: true`），只是没有任何占据者，设置页入口也不再出现。这不是运行时报错，而是加载期的版本闸门。本次**源码未做任何功能性改动**：同一份代码在 `0.1.7-rc.2`、`0.2.0-rc.1` 与 `0.2.0-rc.2` 下均通过 `tsc --noEmit`，因此范围如实放宽到覆盖两条轨道，而不是把 0.1.7 一脚踢开。
+- **该修复已在本机实测确认**：用真实的 `evaluatePluginCompatibility` 判定，`0.2.0-rc.2` / `0.2.0-rc.1` / `0.2.0` / `0.1.7-rc.2` 兼容，`0.1.5-rc.1` 与 `0.3.0-rc.1` 仍被正确拒绝；把 0.2.5 装进本机 profile 后，0.2.0-rc.2 的启动闸门报告 `dsh-better-input@0.2.5` 为 **COMPATIBLE**（此前它是被跳过的 9 个 bundle 之一）。另做了两组运行时验证：宿主半边（Cordis 挂载、`validateTypertManifest`、真实 `TypertRegistry` 注册、真实 `LlmRuntime` 下的 `listRoutes`/`polish`、设置与模板存取）逐项通过；客户端半边 `lib/client.js` 的模块表契约 12/12 通过，且 `@deepseek-ai/dsh-client-ui-renderer` 的 `lib/types/client/registry.d.ts`（`SlotRegistry.inject` 的定义处）在 `0.1.7-rc.2` / `0.2.0-rc.1` / `0.2.0-rc.2` 三个版本间**逐字节相同**，`src/client/slots.d.ts` 的手写镜像因此仍然精确。本机 0.2.0-rc.2 实例上亦已实测：`conversation.input.right`（`better-input-optimize`，order 9998）与 `plugins.bundle.config`（key `dsh-better-input`）两个槽位均显示本插件条目为 active，宿主面也出现 `dsh-better-input` 的 loader 条目。
+
+### 注意
+
+- **本版本不改变任何用户可见行为**：修复点在 `package.json` 的 `peerDependencies`，功能、设置文件位置与格式、远程契约都与 0.2.4 完全一致。从 0.2.4 升级不需要重新配置设置。
+- **首次加载需要重启 dsh**：bundle 清单与版本闸门都在宿主启动时结算，插件安装完成后必须重启 dsh（或经由插件管理器重新加载）才会出现在界面里。
+
 ## [0.2.4] - 未发布
 
 ### 改动
